@@ -85,6 +85,7 @@ class EditFileTool:
             return {"error": "edit_file: path required", "exit_code": 1}
         try:
             path = _resolve_tool_path(raw_path)
+            print("resolved path =", path)
         except ValueError as e:
             return {"error": f"edit_file: {e}", "exit_code": 1}
         if old == "":
@@ -182,6 +183,9 @@ class ReadFileTool:
 
 class WriteFileTool:
     async def execute(self, content: str, ctx: dict) -> dict:
+        print("\n=== WRITE_FILE ===")
+        print("content =", repr(content))
+        print("ctx =", ctx)
         from src.tool_execution import _resolve_tool_path, _resolve_search_root, _truncate
         lines = content.split("\n", 1)
         raw_path = lines[0].strip()
@@ -220,6 +224,7 @@ class WriteFileTool:
                     f.write(body)
                 return old, len(body)
             old_content, size = await asyncio.to_thread(_write)
+            print("write complete")
         except PermissionError:
             return {"error": f"write_file: {path}: permission denied", "exit_code": 1}
         except OSError as e:

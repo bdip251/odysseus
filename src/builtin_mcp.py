@@ -348,15 +348,24 @@ def _npx_package_name(package_spec):
 
 def _npm_cache_roots():
     roots = []
+
     configured = os.environ.get("npm_config_cache")
     if configured:
         roots.append(os.path.expanduser(configured))
-    roots.append(os.path.join(os.path.expanduser("~"), ".npm"))
+
+    # Honor HOME explicitly when it is provided. This matters on Windows,
+    # where expanduser("~") normally follows USERPROFILE instead.
+    home = os.environ.get("HOME")
+    if home:
+        roots.append(os.path.join(home, ".npm"))
+    else:
+        roots.append(os.path.join(os.path.expanduser("~"), ".npm"))
+
     local_app_data = os.environ.get("LOCALAPPDATA")
     if local_app_data:
         roots.append(os.path.join(local_app_data, "npm-cache"))
-    return list(dict.fromkeys(roots))
 
+    return list(dict.fromkeys(roots))
 
 def _npx_cache_contains_package(npx_root, package_name):
     if not os.path.isdir(npx_root):

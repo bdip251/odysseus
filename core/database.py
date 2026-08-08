@@ -88,12 +88,12 @@ _SQLITE_SIDECARS = ("-journal", "-wal", "-shm")
 def _sqlite_db_path(url) -> Optional[str]:
     """Return the filesystem path for a file-backed SQLite URL.
 
-    SQLite query parameters such as ``mode=memory`` only affect filename
-    semantics when SQLAlchemy enables URI handling with ``uri=true``. Ordinary
+    SQLite query parameters such as `mode=memory` only affect filename
+    semantics when SQLAlchemy enables URI handling with `uri=true`. Ordinary
     file URLs must therefore remain file-backed even when they contain a query
-    parameter named ``mode``.
+    parameter named `mode`.
 
-    For SQLite ``file:`` URIs, an empty authority or ``localhost`` identifies a
+    For SQLite `file:` URIs, an empty authority or `localhost` identifies a
     local path. Other authorities are retained as UNC-style paths.
     """
     if url.get_backend_name() != "sqlite":
@@ -121,12 +121,23 @@ def _sqlite_db_path(url) -> Optional[str]:
         return None
 
     parsed = urlparse(db_path)
-    fs_path = parsed.path or ""
+
+    # Windows SQLite URIs can arrive as:
+    # file://localhostC:\path\to\db.sqlite
+    # urlparse() interprets "localhostC:" as the authority. Recover the
+    # Windows filesystem path from that authority/path combination.
+    authority = parsed.netloc
+    if authority.lower().startswith("localhost") and len(authority) > len(
+        "localhost"
+    ):
+        fs_path = authority[len("localhost") :] + (parsed.path or "")
+    else:
+        fs_path = parsed.path or ""
+
     if not fs_path or fs_path == ":memory:":
         return None
 
-    authority = parsed.netloc
-    if authority and authority.lower() != "localhost":
+    if authority and not authority.lower().startswith("localhost"):
         fs_path = f"//{authority}{fs_path}"
 
     return unquote(fs_path)
